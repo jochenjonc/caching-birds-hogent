@@ -1,0 +1,58 @@
+<h1 mat-dialog-title>Create/Edit Observation</h1>
+
+<div mat-dialog-content class="form" [formGroup]="form">
+
+  <mat-form-field appearance="fill">
+    <mat-label>Bird</mat-label>
+    <mat-select formControlName="bird" [compareWith]="compareBirds">
+      <mat-option *ngFor="let bird of birds$ | async" [value]="bird">{{ bird.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Observation Date</mat-label>
+    <input matInput [ngxMatDatetimePicker]="obsevationDatePicker" formControlName="observationDate">
+    <mat-datepicker-toggle matIconSuffix [for]="$any(obsevationDatePicker)"></mat-datepicker-toggle>
+    <ngx-mat-datetime-picker #obsevationDatePicker [showSpinners]="true"></ngx-mat-datetime-picker>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Latitude</mat-label>
+    <input matInput type="number" class="no-spinner" formControlName="latitude" />
+    <button mat-icon-button matSuffix (click)="getLocation()">
+      <mat-icon>my_location</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Longitude</mat-label>
+    <input matInput type="number" class="no-spinner" formControlName="longitude" />
+    <button mat-icon-button matSuffix (click)="getLocation()">
+      <mat-icon>my_location</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Remark</mat-label>
+    <textarea matInput formControlName="remark"></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Photo</mat-label>
+    <img matInput *ngIf="photoUrl; let src" [src]="src" class="image" />
+    <input matInput hidden readonly formControlName="photo" />
+    <button mat-icon-button matSuffix (click)="fileInput.click()">
+      <mat-icon>image</mat-icon>
+    </button>
+    <button mat-icon-button matSuffix (click)="fileInputChange(null)">
+      <mat-icon>delete</mat-icon>
+    </button>
+    <input type="file" accept="image/*" hidden #fileInput (change)="fileInputChange(fileInput.files)" />
+  </mat-form-field>
+
+</div>
+
+<div mat-dialog-actions>
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" cdkFocusInitial (click)="onSave()">Save</button>
+</div>

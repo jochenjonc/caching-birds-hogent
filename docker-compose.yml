@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "P@ssw0rd"
+      MSSQL_PID: "Developer"
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "P@ssw0rd" -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - mssql_data:/var/opt/mssql
+    ports:
+      - "1433:1433"
+    networks:
+      inside:
+        aliases:
+          - sql2022
+      outside: ~
+
+  create_database:
+    image: mcr.microsoft.com/mssql-tools:latest
+    command: /opt/mssql-tools/bin/sqlcmd -S sql2022 -U sa -P "P@ssw0rd" -i "/mnt/create-database.sql" -l 20
+    volumes:
+      - ./.docker/sqlserver:/mnt
+    networks:
+      - inside
+    depends_on:
+      database:
+        condition: service_healthy
+
+  run_migrations:
+    image: mcr.microsoft.com/dotnet/sdk:7.0
+    command: >
+        bash -c "echo 'INSTALL DOTNET-EF'
+        && dotnet tool update --global dotnet-ef --version 7.0.2 --verbosity normal --ignore-failed-sources
+        && echo 'RUN MIGRATIONS'
+        && dotnet-ef database update --project '/mnt/BirdsApi' --startup-project '/mnt/BirdsApi' --connection 'Server=sql2022;Database=CachingBirds;User Id=sa;Password=P@ssw0rd;TrustServerCertificate=true;' --no-build --verbose"
+    environment:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.dotnet/tools
+      DOTNET_ENVIRONMENT: Production
+    volumes:
+      - .:/mnt
+    networks:
+      - inside
+    depends_on:
+      database:
+        condition: service_healthy
+      create_database:
+        condition: service_completed_successfully
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "8223:80"
+    networks:
+      outside: ~
+
+volumes:
+  mssql_data: {}
+
+networks:
+  inside:
+    external: false
+  outside:
+    driver: bridge
